@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Bot Test Results (Offline)</title>
+    <style>
+        /* --- RESET & BASICS --- */
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --primary: #3498db;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --warning: #f39c12;
+            --border: #e0e0e0;
+            --code-bg: #2d3436;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        
+        /* --- LAYOUT UTILITIES --- */
+        .container { max-width: 1400px; margin: 0 auto; }
+        .flex-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* --- CARDS & METRICS --- */
+        .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .metric-title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .metric-value { font-size: 2rem; font-weight: 700; color: var(--text-main); }
+        .text-green { color: var(--success); }
+        .text-red { color: var(--danger); }
+        
+        /* --- BUTTONS & CONTROLS --- */
+        .btn { padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; border: none; transition: background 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #2980b9; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: white; }
+
+        /* Toggle Switch */
+        .toggle-wrapper { display: flex; align-items: center; cursor: pointer; }
+        .toggle-switch { position: relative; width: 40px; height: 20px; background: #ccc; border-radius: 20px; margin-right: 10px; transition: 0.3s; }
+        .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: 0.3s; }
+        input:checked + .toggle-switch { background: var(--primary); }
+        input:checked + .toggle-switch::after { transform: translateX(20px); }
+        input[type="checkbox"] { display: none; }
+
+        /* --- TABLE STYLES --- */
+        table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        th { text-align: left; padding: 15px; background: #f8f9fa; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; border-bottom: 2px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #f9f9f9; }
+
+        /* Status Badges */
+        .badge { padding: 5px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; display: inline-block; }
+        .badge-pass { background: #d4edda; color: #155724; }
+        .badge-fail { background: #f8d7da; color: #721c24; }
+        .badge-warn { background: #fff3cd; color: #856404; }
+
+        /* Progress Bar */
+        .progress-bg { background: #eee; height: 8px; border-radius: 4px; width: 100px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 10px; }
+        .progress-fill { height: 100%; border-radius: 4px; }
+
+        /* --- MODAL --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: white; width: 90%; max-width: 1200px; height: 90%; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; animation: slideIn 0.3s ease; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; background: #f4f7f6; }
+        .modal-footer { padding: 15px; border-top: 1px solid var(--border); text-align: right; background: white; }
+        
+        /* Comparison View */
+        .compare-col { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 15px; height: 100%; }
+        .col-header { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; display: block; }
+        .col-header.expected { color: var(--success); }
+        .col-header.actual { color: var(--primary); }
+        
+        /* Agent Brain */
+        .agent-brain { background: var(--code-bg); color: #dfe6e9; padding: 15px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.9rem; margin-top: 20px; }
+        .brain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .key { color: #74b9ff; } .str { color: #55efc4; }
+
+        /* Utilities */
+        .phi-blur { filter: blur(6px); transition: 0.3s; cursor: pointer; }
+        .phi-blur:hover { filter: blur(0); }
+        .hidden { display: none; }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        /* SVG Icons */
+        .icon { width: 16px; height: 16px; vertical-align: text-bottom; fill: currentColor; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="flex-row">
+        <div>
+            <h2 style="margin:0;">Agentic Test Dashboard</h2>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Offline Mode • Run ID: #LOCAL-TEST-001</div>
+        </div>
+        <div style="display:flex; gap: 15px; align-items: center;">
+            <label class="toggle-wrapper">
+                <input type="checkbox" id="phiToggle" checked onchange="togglePHI()">
+                <div class="toggle-switch"></div>
+                <span style="font-weight: 600; font-size: 0.9rem;">Mask PHI Data</span>
+            </label>
+            <button class="btn btn-primary" onclick="alert('Export functionality would go here')">Export Report</button>
+        </div>
+    </div>
+
+    <div class="grid-4">
+        <div class="card">
+            <div class="metric-title">Total Tests</div>
+            <div class="metric-value" id="total-tests">0</div>
+        </div>
+        <div class="card">
+            <div class="metric-title">Pass Rate</div>
+            <div class="metric-value text-green" id="pass-rate">0%</div>
+        </div>
+        <div class="card">
+            <div class="metric-title">Avg Latency</div>
+            <div class="metric-value" style="color: var(--primary)" id="avg-latency">0ms</div>
+        </div>
+        <div class="card">
+            <div class="metric-title">Failures</div>
+            <div class="metric-value text-red" id="fail-count">0</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="10%">Status</th>
+                <th width="10%">ID</th>
+                <th width="15%">Category</th>
+                <th width="30%">User Question</th>
+                <th width="10%">Latency</th>
+                <th width="15%">Accuracy Score</th>
+                <th width="10%">Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            </tbody>
+    </table>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 style="margin:0">Test Analysis: <span id="modal-test-id" style="color:var(--text-muted)"></span></h3>
+            <button class="btn btn-outline" onclick="closeModal()">Close</button>
+        </div>
+        <div class="modal-body">
+            
+            <div class="grid-2" style="height: 45%; min-height: 200px;">
+                <div>
+                    <span class="col-header expected">Expected Response (Golden Set)</span>
+                    <div class="compare-col">
+                        <div id="modal-expected" class="phi-sensitive">Loading...</div>
+                        <div style="margin-top: 15px; font-size: 0.85rem; border-top: 1px solid #eee; padding-top: 10px;">
+                            <strong>Required Tool:</strong> <span id="modal-req-tool" style="background:#eee; padding:2px 6px; border-radius:4px;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <span class="col-header actual">Actual Bot Response</span>
+                    <div class="compare-col">
+                        <div id="modal-actual" class="phi-sensitive">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="agent-brain">
+                <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Agent Diagnostics</div>
+                <div class="brain-grid">
+                    <div>
+                        <div style="color:#aaa; font-size:0.8rem; margin-bottom:5px;">TOOL EXECUTION</div>
+                        <div id="modal-tools"></div>
+                    </div>
+                    <div>
+                        <div style="color:#aaa; font-size:0.8rem; margin-bottom:5px;">RETRIEVED CONTEXT (RAG)</div>
+                        <div id="modal-context" class="phi-sensitive" style="max-height: 100px; overflow-y: auto; color: #b2bec3;"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- MOCK DATA ---
+    const testResults = [
+        {
+            id: "TC-101",
+            category: "Benefits Inquiry",
+            question: "What is the deductible for John Doe?",
+            status: "PASS",
+            latency: 1200,
+            accuracy: 0.98,
+            expected: "The individual deductible for John Doe is $2,000 for the 2024 plan year.",
+            actual: "John Doe's individual deductible is $2,000 for the current plan year (2024).",
+            required_tool: "get_accumulator_status",
+            tool_call: "get_accumulator_status(member_id='MEM-8821')",
+            context: "Source: 2024_Plan_Doc.pdf (Page 12)... 'Individual Deductible: $2,000'..."
+        },
+        {
+            id: "TC-102",
+            category: "Claims Status",
+            question: "Has my claim for the MRI been paid?",
+            status: "FAIL",
+            latency: 4500,
+            accuracy: 0.45,
+            expected: "Yes, Claim #9921 for the MRI on Jan 15th was paid on Feb 2nd.",
+            actual: "I cannot find any recent claims for an MRI. Please check the date of service.",
+            required_tool: "search_claims",
+            tool_call: "search_claims(keyword='X-Ray') <-- ERROR: Wrong keyword",
+            context: "No claims found matching keyword 'X-Ray' in the last 90 days."
+        }
+    ];
+
+    // --- LOGIC ---
+    function init() {
+        const tbody = document.getElementById('tableBody');
+        let pass = 0, lat = 0;
+        
+        testResults.forEach(t => {
+            if(t.status === 'PASS') pass++;
+            lat += t.latency;
+            
+            let badge = t.status === 'PASS' ? 'badge-pass' : 'badge-fail';
+            let color = t.accuracy > 0.8 ? '#27ae60' : (t.accuracy > 0.5 ? '#f39c12' : '#c0392b');
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><span class="badge ${badge}">${t.status}</span></td>
+                    <td style="font-weight:bold; color:var(--text-muted)">${t.id}</td>
+                    <td><span style="background:#eee; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${t.category}</span></td>
+                    <td class="phi-sensitive">${t.question}</td>
+                    <td>${t.latency}ms</td>
+                    <td>
+                        ${(t.accuracy*100).toFixed(0)}%
+                        <div class="progress-bg"><div class="progress-fill" style="width:${t.accuracy*100}%; background:${color}"></div></div>
+                    </td>
+                    <td><button class="btn btn-outline" onclick="openModal('${t.id}')">View</button></td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('total-tests').innerText = testResults.length;
+        document.getElementById('pass-rate').innerText = Math.round((pass/testResults.length)*100) + "%";
+        document.getElementById('avg-latency').innerText = Math.round(lat/testResults.length) + "ms";
+        document.getElementById('fail-count').innerText = testResults.length - pass;
+        
+        togglePHI();
+    }
+
+    function openModal(id) {
+        const d = testResults.find(t => t.id === id);
+        if(!d) return;
+        document.getElementById('modal-test-id').innerText = d.id;
+        document.getElementById('modal-expected').innerText = d.expected;
+        document.getElementById('modal-actual').innerText = d.actual;
+        document.getElementById('modal-req-tool').innerText = d.required_tool;
+        document.getElementById('modal-tools').innerHTML = `<span class="key">Call:</span> <span class="str">${d.tool_call}</span>`;
+        document.getElementById('modal-context').innerText = d.context;
+        
+        document.getElementById('detailModal').style.display = "flex";
+    }
+
+    function closeModal() {
+        document.getElementById('detailModal').style.display = "none";
+    }
+
+    function togglePHI() {
+        const blur = document.getElementById('phiToggle').checked;
+        document.querySelectorAll('.phi-sensitive').forEach(el => {
+            blur ? el.classList.add('phi-blur') : el.classList.remove('phi-blur');
+        });
+    }
+
+    // Close modal on click outside
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    init();
+</script>
+
+</body>
+</html>
