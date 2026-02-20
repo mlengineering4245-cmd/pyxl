@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Response Comparison Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --text-main: #333;
+            --expected-bg: #e6f4ea; /* Light green tint */
+            --actual-bg: #e8f0fe;   /* Light blue tint */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Layout using CSS Grid for perfect column alignment */
+        .data-grid {
+            display: grid;
+            /* 4 Columns: Scenario (15%), Payload (20%), Expected (32.5%), Actual (32.5%) */
+            grid-template-columns: 15% 20% 1fr 1fr; 
+            gap: 15px;
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        /* Column Styling */
+        .col {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            
+            /* CRITICAL: Allows wide tables to scroll horizontally instead of breaking the layout */
+            overflow-x: auto; 
+        }
+
+        .col-expected { background-color: var(--expected-bg); }
+        .col-actual { background-color: var(--actual-bg); }
+
+        /* General styling for HTML Tables injected from the bot */
+        .col table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            white-space: nowrap; /* Keeps table cells on one line */
+        }
+        
+        .col table, .col th, .col td {
+            border: 1px solid #bbb;
+        }
+        
+        .col th, .col td {
+            padding: 6px 10px;
+            text-align: left;
+        }
+
+        .col th {
+            background-color: #f1f3f5;
+        }
+
+        .payload-block {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-controls">
+        <h2>Manual Comparison Dashboard</h2>
+        <label for="jsonFileInput"><strong>Load JSON Data:</strong></label>
+        <input type="file" id="jsonFileInput" accept=".json">
+    </div>
+
+    <div id="dashboardContainer">
+        </div>
+
+    <script>
+        // Listen for local file selection
+        document.getElementById('jsonFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    renderDashboard(data);
+                } catch (error) {
+                    alert("Error parsing JSON file. Please ensure it is valid JSON.");
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function renderDashboard(data) {
+            const container = document.getElementById('dashboardContainer');
+            container.innerHTML = ''; // Clear existing
+
+            data.forEach(item => {
+                // Combine payload fields if they exist as an object, otherwise display raw
+                let payloadDisplay = item.payload;
+                if (typeof item.payload === 'object') {
+                    payloadDisplay = `Query: ${item.payload.query || 'N/A'}\nContract: ${item.payload.contract_id || 'N/A'}\nMember: ${item.payload.member_id || 'N/A'}`;
+                }
+
+                // Create the Grid Row
+                const gridRow = document.createElement('div');
+                gridRow.className = 'data-grid';
+
+                // 1. Scenario Column
+                const colScenario = document.createElement('div');
+                colScenario.className = 'col';
+                colScenario.innerHTML = `<strong>${item.scenario || 'Unnamed Scenario'}</strong>`;
+                
+                // 2. Payload Column
+                const colPayload = document.createElement('div');
+                colPayload.className = 'col';
+                colPayload.innerHTML = `<div class="payload-block">${payloadDisplay}</div>`;
+
+                // 3. Expected Response Column (Injecting HTML)
+                const colExpected = document.createElement('div');
+                colExpected.className = 'col col-expected';
+                colExpected.innerHTML = item.Expected_Response || '<em>No Expected Response</em>';
+
+                // 4. Actual Response Column (Injecting HTML)
+                const colActual = document.createElement('div');
+                colActual.className = 'col col-actual';
+                colActual.innerHTML = item.actual_response || '<em>No Actual Response</em>';
+
+                // Append columns to row, and row to container
+                gridRow.appendChild(colScenario);
+                gridRow.appendChild(colPayload);
+                gridRow.appendChild(colExpected);
+                gridRow.appendChild(colActual);
+                
+                container.appendChild(gridRow);
+            });
+        }
+    </script>
+</body>
+</html>
